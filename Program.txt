@@ -1,0 +1,83 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import keras
+import plotly.express as px
+from keras import layers
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, r2_score
+
+data = pd.read_csv('Automobile.csv')
+data
+
+df_stats=data
+graf = px.scatter(df_stats,
+                  x = 'model_year',
+                  y = 'mpg',
+                  title = 'Практическая выработка отредактированная'
+)
+graf.show()
+
+idx = data[(data['model_year'] == 71) & (data['mpg'] > 30) | 
+(data['model_year'] == 73) & (data['mpg'] > 24)| 
+(data['model_year'] == 75) & (data['mpg'] > 25)|
+(data['model_year'] == 78) & (data['mpg'] > 33)|
+(data['model_year'] == 80) & (data['mpg'] < 23)|
+(data['model_year'] == 81) & (data['mpg'] < 22)|
+(data['model_year'] == 82) & (data['mpg'] > 38)
+].index
+data = data.drop(idx)
+
+df_stats=data
+graf = px.scatter(df_stats,
+                  x = 'model_year',
+                  y = 'mpg',
+                  title = 'Практическая выработка отредактированная'
+)
+graf.show()
+
+data = data.drop(['origin', 'name','displacement'], axis=1)
+data=data.dropna()
+data.dtypes
+data.isnull().sum()
+
+features = data[['cylinders', 'horsepower', 'weight', 'acceleration','model_year']]
+target = data['mpg']
+
+scaler = StandardScaler()
+features_scaled = scaler.fit_transform(features)
+
+X_train, X_test, y_train, y_test = train_test_split(features_scaled, target, test_size=0.2, random_state=42)
+X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+
+model = keras.Sequential()
+model.add(keras.layers.LSTM(50, return_sequences=True, input_shape=(1, X_train.shape[2])))
+model.add(keras.layers.LSTM(50))
+model.add(keras.layers.Dense(1))
+
+model.compile(optimizer='adam', loss='mean_squared_error')
+history = model.fit(X_train, y_train, epochs=200, batch_size=32, validation_split=0.2)
+
+loss = model.evaluate(X_test, y_test)
+loss
+
+predictions = model.predict(X_test)
+predictions
+
+mae = mean_absolute_error(y_test, predictions)
+r2 = r2_score(y_test, predictions)
+mae
+
+r2
+
+plt.figure(figsize=(12, 6))
+plt.plot(y_test.values, label='Истинные значения')
+plt.plot(predictions, label='Предсказание')
+plt.title('Предсказанные и истинные значения')
+plt.xlabel('')
+plt.ylabel('Выход энегрии')
+plt.legend()
+plt.show()
